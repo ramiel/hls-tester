@@ -1,12 +1,19 @@
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { useHlsTimeline } from "./useHlsTimeline";
 import type { BufferedRange, FragmentRecord } from "./types";
 
-const PX_PER_SEC = 12;
+const DEFAULT_PX_PER_SEC = 12;
+const MIN_PX_PER_SEC = 2;
+const MAX_PX_PER_SEC = 100;
+const ZOOM_FACTOR = 1.5;
 const MIN_CELL_WIDTH_PX = 2;
 const MIN_LABEL_WIDTH_PX = 40;
+
+function clampZoom(value: number): number {
+  return Math.min(MAX_PX_PER_SEC, Math.max(MIN_PX_PER_SEC, value));
+}
 
 interface HlsTimelinePanelProps {
   playerRef: RefObject<MuxPlayerRefAttributes | null>;
@@ -38,15 +45,17 @@ function FragmentCells({
   fragments,
   isTrackActive,
   currentTime,
+  pxPerSec,
 }: {
   fragments: FragmentRecord[];
   isTrackActive: boolean;
   currentTime: number;
+  pxPerSec: number;
 }) {
   return (
     <>
       {fragments.map((frag) => {
-        const widthPx = Math.max(MIN_CELL_WIDTH_PX, frag.duration * PX_PER_SEC);
+        const widthPx = Math.max(MIN_CELL_WIDTH_PX, frag.duration * pxPerSec);
         const isActive =
           isTrackActive && currentTime >= frag.start && currentTime < frag.start + frag.duration;
         return (
@@ -55,7 +64,7 @@ function FragmentCells({
             className={`hls-debug-cell${isActive ? " is-active" : ""}${
               frag.status === "error" ? " is-error" : ""
             }`}
-            style={{ left: frag.start * PX_PER_SEC, width: widthPx }}
+            style={{ left: frag.start * pxPerSec, width: widthPx }}
             title={`sn: ${frag.sn} · ${formatTime(frag.start)}${
               frag.status === "error" ? " · load error" : ""
             }`}
@@ -77,6 +86,7 @@ function FragmentCells({
 export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps) {
   const [open, setOpen] = useState(false);
   const [followPlayhead, setFollowPlayhead] = useState(false);
+  const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
   const panelId = useId();
   const scrollRef = useRef<HTMLDivElement>(null);
   const state = useHlsTimeline(playerRef, resetKey);
@@ -110,16 +120,19 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
     return observedEnd + 10;
   }, [state]);
 
-  const trackWidth = Math.max(durationSeconds * PX_PER_SEC, 320);
+  const trackWidth = Math.max(durationSeconds * pxPerSec, 320);
 
   const ticks = useMemo(() => {
-    const interval = PX_PER_SEC * 30 >= 80 ? 30 : 60;
+    const niceIntervals = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
+    const interval =
+      niceIntervals.find((candidate) => candidate * pxPerSec >= 80) ??
+      niceIntervals[niceIntervals.length - 1];
     const values: number[] = [];
     for (let t = 0; t <= durationSeconds; t += interval) {
       values.push(t);
     }
     return values;
-  }, [durationSeconds]);
+  }, [durationSeconds, pxPerSec]);
 
   useEffect(() => {
     if (!followPlayhead || !open) {
@@ -129,9 +142,9 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
     if (!el) {
       return;
     }
-    const target = state.currentTime * PX_PER_SEC - el.clientWidth / 2;
+    const target = state.currentTime * pxPerSec - el.clientWidth / 2;
     el.scrollLeft = Math.max(0, target);
-  }, [followPlayhead, open, state.currentTime]);
+  }, [followPlayhead, open, state.currentTime, pxPerSec]);
 
   if (!open) {
     return (
@@ -175,6 +188,29 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
         )}
 
         <div className="hls-debug-controls">
+          <div className="hls-debug-zoom">
+            <button
+              type="button"
+              className="hls-debug-zoom-button"
+              onClick={() => setPxPerSec((p) => clampZoom(p / ZOOM_FACTOR))}
+              disabled={pxPerSec <= MIN_PX_PER_SEC}
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              <ZoomOut size={14} />
+            </button>
+            <span className="hls-debug-zoom-value">{Math.round(pxPerSec)} px/s</span>
+            <button
+              type="button"
+              className="hls-debug-zoom-button"
+              onClick={() => setPxPerSec((p) => clampZoom(p * ZOOM_FACTOR))}
+              disabled={pxPerSec >= MAX_PX_PER_SEC}
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              <ZoomIn size={14} />
+            </button>
+          </div>
           <label className="hls-debug-follow-toggle">
             <input
               type="checkbox"
@@ -217,12 +253,12 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
           <div className="hls-debug-scroll" ref={scrollRef}>
             <div className="hls-debug-track" style={{ width: trackWidth }}>
               {ticks.map((t) => (
-                <div key={t} className="hls-debug-gridline" style={{ left: t * PX_PER_SEC }} />
+                <div key={t} className="hls-debug-gridline" style={{ left: t * pxPerSec }} />
               ))}
 
               <div
                 className="hls-debug-playhead"
-                style={{ left: state.currentTime * PX_PER_SEC }}
+                style={{ left: state.currentTime * pxPerSec }}
               />
 
               <div className="hls-debug-row">
@@ -231,8 +267,8 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     key={i}
                     className="hls-debug-bar hls-debug-bar--media"
                     style={{
-                      left: range.start * PX_PER_SEC,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * PX_PER_SEC),
+                      left: range.start * pxPerSec,
+                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
@@ -245,8 +281,8 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     key={i}
                     className="hls-debug-bar hls-debug-bar--video"
                     style={{
-                      left: range.start * PX_PER_SEC,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * PX_PER_SEC),
+                      left: range.start * pxPerSec,
+                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
@@ -259,8 +295,8 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     key={i}
                     className="hls-debug-bar hls-debug-bar--audio"
                     style={{
-                      left: range.start * PX_PER_SEC,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * PX_PER_SEC),
+                      left: range.start * pxPerSec,
+                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
@@ -273,6 +309,7 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     fragments={state.fragmentsByLevel.get(level.index) ?? []}
                     isTrackActive={state.activeLevel === level.index}
                     currentTime={state.currentTime}
+                    pxPerSec={pxPerSec}
                   />
                 </div>
               ))}
@@ -284,6 +321,7 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     fragments={state.audioFragmentsByTrack.get(track.index) ?? []}
                     isTrackActive={state.activeAudioTrack === track.index}
                     currentTime={state.currentTime}
+                    pxPerSec={pxPerSec}
                   />
                 </div>
               ))}
@@ -295,13 +333,14 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     fragments={state.subtitleFragmentsByTrack.get(track.index) ?? []}
                     isTrackActive={state.activeSubtitleTrack === track.index}
                     currentTime={state.currentTime}
+                    pxPerSec={pxPerSec}
                   />
                 </div>
               ))}
 
               <div className="hls-debug-axis">
                 {ticks.map((t) => (
-                  <span key={t} className="hls-debug-tick-label" style={{ left: t * PX_PER_SEC }}>
+                  <span key={t} className="hls-debug-tick-label" style={{ left: t * pxPerSec }}>
                     {formatTime(t)}
                   </span>
                 ))}
