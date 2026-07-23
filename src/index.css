@@ -394,6 +394,28 @@ body {
   color: var(--text-muted);
 }
 
+.hls-debug-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.hls-debug-follow-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.hls-debug-follow-toggle input {
+  accent-color: var(--accent);
+  width: 13px;
+  height: 13px;
+}
+
 .hls-debug-grid {
   display: flex;
   border: 1px solid var(--border);

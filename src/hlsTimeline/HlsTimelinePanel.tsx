@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type RefObject } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
 import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { useHlsTimeline } from "./useHlsTimeline";
@@ -32,7 +32,9 @@ function maxFragEnd(fragments: FragmentRecord[]): number {
 
 export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps) {
   const [open, setOpen] = useState(false);
+  const [followPlayhead, setFollowPlayhead] = useState(false);
   const panelId = useId();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const state = useHlsTimeline(playerRef, resetKey);
 
   const sortedLevels = useMemo(
@@ -65,6 +67,18 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
     }
     return values;
   }, [durationSeconds]);
+
+  useEffect(() => {
+    if (!followPlayhead || !open) {
+      return;
+    }
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const target = state.currentTime * PX_PER_SEC - el.clientWidth / 2;
+    el.scrollLeft = Math.max(0, target);
+  }, [followPlayhead, open, state.currentTime]);
 
   if (!open) {
     return (
@@ -107,6 +121,17 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
           </p>
         )}
 
+        <div className="hls-debug-controls">
+          <label className="hls-debug-follow-toggle">
+            <input
+              type="checkbox"
+              checked={followPlayhead}
+              onChange={(event) => setFollowPlayhead(event.target.checked)}
+            />
+            Follow playhead
+          </label>
+        </div>
+
         <div className="hls-debug-grid">
           <div className="hls-debug-labels">
             <div className="hls-debug-row-label">media buffer</div>
@@ -120,7 +145,7 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
             <div className="hls-debug-axis-spacer" />
           </div>
 
-          <div className="hls-debug-scroll">
+          <div className="hls-debug-scroll" ref={scrollRef}>
             <div className="hls-debug-track" style={{ width: trackWidth }}>
               {ticks.map((t) => (
                 <div key={t} className="hls-debug-gridline" style={{ left: t * PX_PER_SEC }} />
