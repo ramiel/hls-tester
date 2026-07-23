@@ -348,6 +348,294 @@ body {
   color: #ffb9bb;
 }
 
+.hls-debug {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.hls-debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.hls-debug-toggle:hover,
+.hls-debug-toggle.is-open {
+  color: var(--text);
+}
+
+.hls-debug-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.hls-debug-toggle.is-open .hls-debug-chevron {
+  transform: rotate(90deg);
+}
+
+.hls-debug-body {
+  margin-top: 12px;
+}
+
+.hls-debug-note {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.hls-debug-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.hls-debug-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 999px;
+}
+
+.hls-debug-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.hls-debug-zoom-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text);
+}
+
+.hls-debug-zoom-button:active:not(:disabled) {
+  transform: scale(0.88);
+}
+
+.hls-debug-zoom-button:disabled {
+  color: var(--text-muted);
+  opacity: 0.4;
+  cursor: default;
+}
+
+.hls-debug-zoom-value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+}
+
+.hls-debug-follow-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.hls-debug-follow-toggle input {
+  accent-color: var(--accent);
+  width: 13px;
+  height: 13px;
+}
+
+.hls-debug-grid {
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-1);
+  max-height: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 35%, transparent) transparent;
+}
+
+.hls-debug-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hls-debug-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+}
+
+.hls-debug-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hls-debug-labels {
+  flex: 0 0 172px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-1);
+}
+
+.hls-debug-row-label {
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--border);
+}
+
+.hls-debug-section-label {
+  height: 18px;
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.hls-debug-section-row {
+  height: 18px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.hls-debug-axis-spacer {
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.hls-debug-scroll {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+}
+
+.hls-debug-track {
+  position: relative;
+}
+
+.hls-debug-row {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hls-debug-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  border-left: 1px dashed var(--border);
+  z-index: 0;
+}
+
+.hls-debug-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  width: 2px;
+  background: var(--danger);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hls-debug-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px;
+}
+
+.hls-debug-bar--media {
+  background: color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+
+.hls-debug-bar--video {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.hls-debug-bar--audio {
+  background: color-mix(in srgb, #d8b978 55%, transparent);
+}
+
+.hls-debug-cell {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 35%, var(--bg-1));
+  font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--text);
+  cursor: default;
+}
+
+.hls-debug-cell.is-active {
+  outline: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 70%, var(--bg-1));
+  color: var(--accent-contrast);
+}
+
+.hls-debug-cell.is-error {
+  background: var(--danger-bg);
+  outline: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.hls-debug-axis {
+  position: relative;
+  height: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.hls-debug-tick-label {
+  position: absolute;
+  bottom: 2px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .footer {
   text-align: center;
   margin-top: 22px;

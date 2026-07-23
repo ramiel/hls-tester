@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import MuxPlayer from "@mux/mux-player-react";
-import type { MediaError as MuxMediaError } from "@mux/mux-player-react";
+import type { MediaError as MuxMediaError, MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { Check, CirclePlay, Link2, TriangleAlert } from "lucide-react";
+import { HlsTimelinePanel } from "./hlsTimeline/HlsTimelinePanel";
 import "./index.css";
 
 // const SAMPLE_STREAM =
@@ -46,6 +47,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
   const [copied, setCopied] = useState(false);
+  const playerRef = useRef<MuxPlayerRefAttributes>(null);
 
   const loadStream = useCallback((rawUrl: string) => {
     const trimmed = rawUrl.trim();
@@ -188,6 +190,7 @@ function App() {
           <div className="player-frame">
             {streamSrc && (
               <MuxPlayer
+                ref={playerRef}
                 key={playerKey}
                 streamType={isLive ? "live" : "on-demand"}
                 src={streamSrc}
@@ -223,6 +226,8 @@ function App() {
             )}
           </div>
         </div>
+
+        <HlsTimelinePanel playerRef={playerRef} resetKey={playerKey} />
 
         <footer className="footer">
           <p>
