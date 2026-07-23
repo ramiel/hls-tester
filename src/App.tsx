@@ -1,4 +1,4 @@
-import { useCallback, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import type { MediaError as MuxMediaError } from "@mux/mux-player-react";
 import "./index.css";
@@ -71,6 +71,19 @@ function App() {
     event.preventDefault();
     loadStream(urlInput);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlFromQuery = params.get("url");
+    if (!urlFromQuery) {
+      return;
+    }
+
+    setUrlInput(urlFromQuery);
+    setIsLive(params.get("live") === "true");
+    loadStream(urlFromQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLoadSample = () => {
     setUrlInput(SAMPLE_STREAM);
