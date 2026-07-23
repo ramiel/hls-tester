@@ -8,11 +8,19 @@ export interface LevelInfo {
   label: string;
 }
 
+export interface TrackInfo {
+  index: number;
+  name: string;
+  lang?: string;
+  label: string;
+}
+
 export type FragmentStatus = "loaded" | "error";
+export type TrackKind = "video" | "audio" | "subtitle";
 
 export interface FragmentRecord {
   key: string;
-  trackKind: "video" | "audio";
+  trackKind: TrackKind;
   level: number;
   sn: number | "initSegment";
   start: number;
@@ -30,7 +38,12 @@ export interface TimelineState {
   levels: LevelInfo[];
   activeLevel: number | null;
   fragmentsByLevel: Map<number, FragmentRecord[]>;
-  audioFragments: FragmentRecord[];
+  audioTracks: TrackInfo[];
+  activeAudioTrack: number | null;
+  audioFragmentsByTrack: Map<number, FragmentRecord[]>;
+  subtitleTracks: TrackInfo[];
+  activeSubtitleTrack: number | null;
+  subtitleFragmentsByTrack: Map<number, FragmentRecord[]>;
   mediaBuffered: BufferedRange[];
   videoBuffered: BufferedRange[];
   audioBuffered: BufferedRange[];
@@ -44,7 +57,12 @@ export function createInitialTimelineState(): TimelineState {
     levels: [],
     activeLevel: null,
     fragmentsByLevel: new Map(),
-    audioFragments: [],
+    audioTracks: [],
+    activeAudioTrack: null,
+    audioFragmentsByTrack: new Map(),
+    subtitleTracks: [],
+    activeSubtitleTrack: null,
+    subtitleFragmentsByTrack: new Map(),
     mediaBuffered: [],
     videoBuffered: [],
     audioBuffered: [],

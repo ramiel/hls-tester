@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import Hls from "hls.js";
 import type {
+  AudioTrackSwitchedData,
+  AudioTracksUpdatedData,
   BufferAppendedData,
   ErrorData,
   Events,
   FragLoadedData,
   LevelSwitchedData,
   ManifestParsedData,
+  MediaPlaylist,
+  SubtitleTrackSwitchData,
+  SubtitleTracksUpdatedData,
 } from "hls.js";
 import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import {
@@ -16,6 +21,7 @@ import {
   type FragmentRecord,
   type LevelInfo,
   type TimelineState,
+  type TrackInfo,
 } from "./types";
 
 const POLL_INTERVAL_MS = 150;
@@ -34,6 +40,26 @@ function toRanges(timeRanges: TimeRanges | undefined): BufferedRange[] {
 
 function levelLabel(level: { width: number; height: number; bitrate: number }, index: number): string {
   return `${level.width}x${level.height}@${level.bitrate} (${level.height}) L-${index}`;
+}
+
+function audioTrackLabel(track: MediaPlaylist, index: number): string {
+  const parts = [track.name || track.lang || "audio"];
+  if (track.channels) {
+    parts.push(`${track.channels}ch`);
+  }
+  return `${parts.join(" · ")} A-${index}`;
+}
+
+function subtitleTrackLabel(track: MediaPlaylist, index: number): string {
+  return `${track.name || track.lang || "subtitle"} CC-${index}`;
+}
+
+function toTrackInfo(
+  track: MediaPlaylist,
+  index: number,
+  label: (track: MediaPlaylist, index: number) => string,
+): TrackInfo {
+  return { index, name: track.name, lang: track.lang, label: label(track, index) };
 }
 
 export function useHlsTimeline(
@@ -88,31 +114,67 @@ export function useHlsTimeline(
         bitrate: level.bitrate,
         label: levelLabel(level, index),
       }));
-      setState((prev) => ({ ...prev, levels }));
+      const audioTracks = data.audioTracks.map((track, index) =>
+        toTrackInfo(track, index, audioTrackLabel),
+      );
+      const subtitleTracks = data.subtitleTracks.map((track, index) =>
+        toTrackInfo(track, index, subtitleTrackLabel),
+      );
+      setState((prev) => ({ ...prev, levels, audioTracks, subtitleTracks }));
     }
 
     function onLevelSwitched(_event: Events.LEVEL_SWITCHED, data: LevelSwitchedData) {
       setState((prev) => ({ ...prev, activeLevel: data.level }));
     }
 
-    function onFragLoaded(_event: Events.FRAG_LOADED, data: FragLoadedData) {
-      const frag = data.frag;
+    function onAudioTracksUpdated(_event: Events.AUDIO_TRACKS_UPDATED, data: AudioTracksUpdatedData) {
+      const audioTracks = data.audioTracks.map((track, index) =>
+        toTrackInfo(track, index, audioTrackLabel),
+      );
+      setState((prev) => ({ ...prev, audioTracks }));
+    }
+
+    function onAudioTrackSwitched(_event: Events.AUDIO_TRACK_SWITCHED, data: AudioTrackSwitchedData) {
+      setState((prev) => ({ ...prev, activeAudioTrack: data.id }));
+    }
+
+    function onSubtitleTracksUpdated(
+      _event: Events.SUBTITLE_TRACKS_UPDATED,
+      data: SubtitleTracksUpdatedData,
+    ) {
+      const subtitleTracks = data.subtitleTracks.map((track, index) =>
+        toTrackInfo(track, index, subtitleTrackLabel),
+      );
+      setState((prev) => ({ ...prev, subtitleTracks }));
+    }
+
+    function onSubtitleTrackSwitch(_event: Events.SUBTITLE_TRACK_SWITCH, data: SubtitleTrackSwitchData) {
+      setState((prev) => ({ ...prev, activeSubtitleTrack: data.id }));
+    }
+
+    function recordFragment(frag: FragLoadedData["frag"], status: "loaded" | "error") {
       if (frag.sn === "initSegment") {
         return;
       }
-      const isAudio = frag.type === "audio";
       const record: FragmentRecord = {
-        key: `${frag.type}-${frag.level}-${frag.sn}-${frag.start.toFixed(3)}`,
-        trackKind: isAudio ? "audio" : "video",
+        key: `${frag.type}-${frag.level}-${frag.sn}-${frag.start.toFixed(3)}-${status}`,
+        trackKind: frag.type === "audio" ? "audio" : frag.type === "subtitle" ? "subtitle" : "video",
         level: frag.level,
         sn: frag.sn,
         start: frag.start,
         duration: frag.duration,
-        status: "loaded",
+        status,
       };
       setState((prev) => {
-        if (isAudio) {
-          return { ...prev, audioFragments: [...prev.audioFragments, record] };
+        if (record.trackKind === "audio") {
+          const next = new Map(prev.audioFragmentsByTrack);
+          next.set(record.level, [...(next.get(record.level) ?? []), record]);
+          return { ...prev, audioFragmentsByTrack: next };
+        }
+        if (record.trackKind === "subtitle") {
+          const next = new Map(prev.subtitleFragmentsByTrack);
+          next.set(record.level, [...(next.get(record.level) ?? []), record]);
+          return { ...prev, subtitleFragmentsByTrack: next };
         }
         const next = new Map(prev.fragmentsByLevel);
         next.set(record.level, [...(next.get(record.level) ?? []), record]);
@@ -120,32 +182,15 @@ export function useHlsTimeline(
       });
     }
 
+    function onFragLoaded(_event: Events.FRAG_LOADED, data: FragLoadedData) {
+      recordFragment(data.frag, "loaded");
+    }
+
     function onError(_event: Events.ERROR, data: ErrorData) {
       if (data.details !== Hls.ErrorDetails.FRAG_LOAD_ERROR || !data.frag) {
         return;
       }
-      const frag = data.frag;
-      if (frag.sn === "initSegment") {
-        return;
-      }
-      const isAudio = frag.type === "audio";
-      const record: FragmentRecord = {
-        key: `${frag.type}-${frag.level}-${frag.sn}-${frag.start.toFixed(3)}-error`,
-        trackKind: isAudio ? "audio" : "video",
-        level: frag.level,
-        sn: frag.sn,
-        start: frag.start,
-        duration: frag.duration,
-        status: "error",
-      };
-      setState((prev) => {
-        if (isAudio) {
-          return { ...prev, audioFragments: [...prev.audioFragments, record] };
-        }
-        const next = new Map(prev.fragmentsByLevel);
-        next.set(record.level, [...(next.get(record.level) ?? []), record]);
-        return { ...prev, fragmentsByLevel: next };
-      });
+      recordFragment(data.frag, "error");
     }
 
     function onBufferAppended(_event: Events.BUFFER_APPENDED, data: BufferAppendedData) {
@@ -159,15 +204,20 @@ export function useHlsTimeline(
     function attachHlsListeners(engine: Hls) {
       engine.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
       engine.on(Hls.Events.LEVEL_SWITCHED, onLevelSwitched);
+      engine.on(Hls.Events.AUDIO_TRACKS_UPDATED, onAudioTracksUpdated);
+      engine.on(Hls.Events.AUDIO_TRACK_SWITCHED, onAudioTrackSwitched);
+      engine.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, onSubtitleTracksUpdated);
+      engine.on(Hls.Events.SUBTITLE_TRACK_SWITCH, onSubtitleTrackSwitch);
       engine.on(Hls.Events.FRAG_LOADED, onFragLoaded);
       engine.on(Hls.Events.ERROR, onError);
       engine.on(Hls.Events.BUFFER_APPENDED, onBufferAppended);
 
-      // The manifest can already be parsed (and the level switched) by the time
-      // polling discovers `_hls` — e.g. once the playlist is HTTP-cached, hls.js
-      // races well ahead of our 150ms poll tick. `engine.levels`/`currentLevel`
-      // are plain properties (not events), so read them back synchronously to
-      // backfill anything we would otherwise have missed.
+      // The manifest can already be parsed (and the level/track switched) by the
+      // time polling discovers `_hls` — e.g. once the playlist is HTTP-cached,
+      // hls.js races well ahead of our 150ms poll tick. `engine.levels`,
+      // `engine.audioTracks`, `engine.subtitleTracks` and the current-selection
+      // getters are plain properties (not events), so read them back
+      // synchronously to backfill anything we would otherwise have missed.
       const levels: LevelInfo[] =
         engine.levels?.map((level, index) => ({
           index,
@@ -176,18 +226,32 @@ export function useHlsTimeline(
           bitrate: level.bitrate,
           label: levelLabel(level, index),
         })) ?? [];
+      const audioTracks =
+        engine.audioTracks?.map((track, index) => toTrackInfo(track, index, audioTrackLabel)) ?? [];
+      const subtitleTracks =
+        engine.subtitleTracks?.map((track, index) => toTrackInfo(track, index, subtitleTrackLabel)) ?? [];
       const activeLevel = engine.currentLevel >= 0 ? engine.currentLevel : null;
+      const activeAudioTrack = engine.audioTrack >= 0 ? engine.audioTrack : null;
+      const activeSubtitleTrack = engine.subtitleTrack >= 0 ? engine.subtitleTrack : null;
       setState((prev) => ({
         ...prev,
         availability: "available",
         levels: levels.length > 0 ? levels : prev.levels,
+        audioTracks: audioTracks.length > 0 ? audioTracks : prev.audioTracks,
+        subtitleTracks: subtitleTracks.length > 0 ? subtitleTracks : prev.subtitleTracks,
         activeLevel: activeLevel ?? prev.activeLevel,
+        activeAudioTrack: activeAudioTrack ?? prev.activeAudioTrack,
+        activeSubtitleTrack: activeSubtitleTrack ?? prev.activeSubtitleTrack,
       }));
     }
 
     function detachHlsListeners(engine: Hls) {
       engine.off(Hls.Events.MANIFEST_PARSED, onManifestParsed);
       engine.off(Hls.Events.LEVEL_SWITCHED, onLevelSwitched);
+      engine.off(Hls.Events.AUDIO_TRACKS_UPDATED, onAudioTracksUpdated);
+      engine.off(Hls.Events.AUDIO_TRACK_SWITCHED, onAudioTrackSwitched);
+      engine.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, onSubtitleTracksUpdated);
+      engine.off(Hls.Events.SUBTITLE_TRACK_SWITCH, onSubtitleTrackSwitch);
       engine.off(Hls.Events.FRAG_LOADED, onFragLoaded);
       engine.off(Hls.Events.ERROR, onError);
       engine.off(Hls.Events.BUFFER_APPENDED, onBufferAppended);

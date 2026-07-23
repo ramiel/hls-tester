@@ -30,6 +30,50 @@ function maxFragEnd(fragments: FragmentRecord[]): number {
   return fragments.reduce((max, frag) => Math.max(max, frag.start + frag.duration), 0);
 }
 
+function maxFragEndAcrossTracks(fragmentsByTrack: Map<number, FragmentRecord[]>): number {
+  return Array.from(fragmentsByTrack.values()).reduce((max, frags) => Math.max(max, maxFragEnd(frags)), 0);
+}
+
+function FragmentCells({
+  fragments,
+  isTrackActive,
+  currentTime,
+}: {
+  fragments: FragmentRecord[];
+  isTrackActive: boolean;
+  currentTime: number;
+}) {
+  return (
+    <>
+      {fragments.map((frag) => {
+        const widthPx = Math.max(MIN_CELL_WIDTH_PX, frag.duration * PX_PER_SEC);
+        const isActive =
+          isTrackActive && currentTime >= frag.start && currentTime < frag.start + frag.duration;
+        return (
+          <div
+            key={frag.key}
+            className={`hls-debug-cell${isActive ? " is-active" : ""}${
+              frag.status === "error" ? " is-error" : ""
+            }`}
+            style={{ left: frag.start * PX_PER_SEC, width: widthPx }}
+            title={`sn: ${frag.sn} · ${formatTime(frag.start)}${
+              frag.status === "error" ? " · load error" : ""
+            }`}
+          >
+            {widthPx >= MIN_LABEL_WIDTH_PX && (
+              <span>
+                sn: {frag.sn}
+                <br />
+                {formatTime(frag.start)}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps) {
   const [open, setOpen] = useState(false);
   const [followPlayhead, setFollowPlayhead] = useState(false);
@@ -41,6 +85,14 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
     () => [...state.levels].sort((a, b) => a.height - b.height),
     [state.levels],
   );
+  const sortedAudioTracks = useMemo(
+    () => [...state.audioTracks].sort((a, b) => a.index - b.index),
+    [state.audioTracks],
+  );
+  const sortedSubtitleTracks = useMemo(
+    () => [...state.subtitleTracks].sort((a, b) => a.index - b.index),
+    [state.subtitleTracks],
+  );
 
   const durationSeconds = useMemo(() => {
     if (Number.isFinite(state.duration) && state.duration > 0) {
@@ -50,7 +102,8 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
       maxEnd(state.mediaBuffered),
       maxEnd(state.videoBuffered),
       maxEnd(state.audioBuffered),
-      maxFragEnd(state.audioFragments),
+      maxFragEndAcrossTracks(state.audioFragmentsByTrack),
+      maxFragEndAcrossTracks(state.subtitleFragmentsByTrack),
       ...Array.from(state.fragmentsByLevel.values()).map(maxFragEnd),
       state.currentTime,
     );
@@ -138,8 +191,24 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
             <div className="hls-debug-row-label">video buffer (main)</div>
             <div className="hls-debug-row-label">audio buffer (main)</div>
             {sortedLevels.map((level) => (
-              <div className="hls-debug-row-label" key={level.index} title={level.label}>
+              <div className="hls-debug-row-label" key={`video-${level.index}`} title={level.label}>
                 {level.label}
+              </div>
+            ))}
+            {sortedAudioTracks.length > 0 && (
+              <div className="hls-debug-row-label hls-debug-section-label">Audio tracks</div>
+            )}
+            {sortedAudioTracks.map((track) => (
+              <div className="hls-debug-row-label" key={`audio-${track.index}`} title={track.label}>
+                {track.label}
+              </div>
+            ))}
+            {sortedSubtitleTracks.length > 0 && (
+              <div className="hls-debug-row-label hls-debug-section-label">Captions</div>
+            )}
+            {sortedSubtitleTracks.map((track) => (
+              <div className="hls-debug-row-label" key={`subtitle-${track.index}`} title={track.label}>
+                {track.label}
               </div>
             ))}
             <div className="hls-debug-axis-spacer" />
@@ -198,40 +267,37 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                 ))}
               </div>
 
-              {sortedLevels.map((level) => {
-                const fragments = state.fragmentsByLevel.get(level.index) ?? [];
-                return (
-                  <div className="hls-debug-row" key={level.index}>
-                    {fragments.map((frag) => {
-                      const widthPx = Math.max(MIN_CELL_WIDTH_PX, frag.duration * PX_PER_SEC);
-                      const isActive =
-                        state.activeLevel === level.index &&
-                        state.currentTime >= frag.start &&
-                        state.currentTime < frag.start + frag.duration;
-                      return (
-                        <div
-                          key={frag.key}
-                          className={`hls-debug-cell${isActive ? " is-active" : ""}${
-                            frag.status === "error" ? " is-error" : ""
-                          }`}
-                          style={{ left: frag.start * PX_PER_SEC, width: widthPx }}
-                          title={`sn: ${frag.sn} · ${formatTime(frag.start)}${
-                            frag.status === "error" ? " · load error" : ""
-                          }`}
-                        >
-                          {widthPx >= MIN_LABEL_WIDTH_PX && (
-                            <span>
-                              sn: {frag.sn}
-                              <br />
-                              {formatTime(frag.start)}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+              {sortedLevels.map((level) => (
+                <div className="hls-debug-row" key={`video-${level.index}`}>
+                  <FragmentCells
+                    fragments={state.fragmentsByLevel.get(level.index) ?? []}
+                    isTrackActive={state.activeLevel === level.index}
+                    currentTime={state.currentTime}
+                  />
+                </div>
+              ))}
+
+              {sortedAudioTracks.length > 0 && <div className="hls-debug-section-row" />}
+              {sortedAudioTracks.map((track) => (
+                <div className="hls-debug-row" key={`audio-${track.index}`}>
+                  <FragmentCells
+                    fragments={state.audioFragmentsByTrack.get(track.index) ?? []}
+                    isTrackActive={state.activeAudioTrack === track.index}
+                    currentTime={state.currentTime}
+                  />
+                </div>
+              ))}
+
+              {sortedSubtitleTracks.length > 0 && <div className="hls-debug-section-row" />}
+              {sortedSubtitleTracks.map((track) => (
+                <div className="hls-debug-row" key={`subtitle-${track.index}`}>
+                  <FragmentCells
+                    fragments={state.subtitleFragmentsByTrack.get(track.index) ?? []}
+                    isTrackActive={state.activeSubtitleTrack === track.index}
+                    currentTime={state.currentTime}
+                  />
+                </div>
+              ))}
 
               <div className="hls-debug-axis">
                 {ticks.map((t) => (
