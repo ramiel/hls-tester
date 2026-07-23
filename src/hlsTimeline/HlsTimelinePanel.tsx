@@ -1,4 +1,11 @@
-import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { useHlsTimeline } from "./useHlsTimeline";
@@ -34,11 +41,19 @@ function maxEnd(ranges: BufferedRange[]): number {
 }
 
 function maxFragEnd(fragments: FragmentRecord[]): number {
-  return fragments.reduce((max, frag) => Math.max(max, frag.start + frag.duration), 0);
+  return fragments.reduce(
+    (max, frag) => Math.max(max, frag.start + frag.duration),
+    0,
+  );
 }
 
-function maxFragEndAcrossTracks(fragmentsByTrack: Map<number, FragmentRecord[]>): number {
-  return Array.from(fragmentsByTrack.values()).reduce((max, frags) => Math.max(max, maxFragEnd(frags)), 0);
+function maxFragEndAcrossTracks(
+  fragmentsByTrack: Map<number, FragmentRecord[]>,
+): number {
+  return Array.from(fragmentsByTrack.values()).reduce(
+    (max, frags) => Math.max(max, maxFragEnd(frags)),
+    0,
+  );
 }
 
 function FragmentCells({
@@ -57,7 +72,9 @@ function FragmentCells({
       {fragments.map((frag) => {
         const widthPx = Math.max(MIN_CELL_WIDTH_PX, frag.duration * pxPerSec);
         const isActive =
-          isTrackActive && currentTime >= frag.start && currentTime < frag.start + frag.duration;
+          isTrackActive &&
+          currentTime >= frag.start &&
+          currentTime < frag.start + frag.duration;
         return (
           <div
             key={frag.key}
@@ -83,7 +100,10 @@ function FragmentCells({
   );
 }
 
-export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps) {
+export function HlsTimelinePanel({
+  playerRef,
+  resetKey,
+}: HlsTimelinePanelProps) {
   const [open, setOpen] = useState(false);
   const [followPlayhead, setFollowPlayhead] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
@@ -123,7 +143,9 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
   const trackWidth = Math.max(durationSeconds * pxPerSec, 320);
 
   const ticks = useMemo(() => {
-    const niceIntervals = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
+    const niceIntervals = [
+      1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600,
+    ];
     const interval =
       niceIntervals.find((candidate) => candidate * pxPerSec >= 80) ??
       niceIntervals[niceIntervals.length - 1];
@@ -156,7 +178,11 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
           aria-controls={panelId}
           onClick={() => setOpen(true)}
         >
-          <ChevronRight size={15} className="hls-debug-chevron" aria-hidden="true" />
+          <ChevronRight
+            size={15}
+            className="hls-debug-chevron"
+            aria-hidden="true"
+          />
           <span>HLS debug timeline</span>
         </button>
       </section>
@@ -172,18 +198,30 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
         aria-controls={panelId}
         onClick={() => setOpen(false)}
       >
-        <ChevronRight size={15} className="hls-debug-chevron" aria-hidden="true" />
+        <ChevronRight
+          size={15}
+          className="hls-debug-chevron"
+          aria-hidden="true"
+        />
         <span>HLS debug timeline</span>
       </button>
 
-      <div id={panelId} className="hls-debug-body" role="region" aria-label="HLS chunk timeline">
+      <div
+        id={panelId}
+        className="hls-debug-body"
+        role="region"
+        aria-label="HLS chunk timeline"
+      >
         {state.availability === "detecting" && (
-          <p className="hls-debug-note">Waiting for the hls.js engine to attach&hellip;</p>
+          <p className="hls-debug-note">
+            Waiting for the hls.js engine to attach&hellip;
+          </p>
         )}
         {state.availability === "unavailable" && (
           <p className="hls-debug-note">
-            Per-segment timeline isn&rsquo;t available (this browser is likely using native HLS
-            playback instead of hls.js). Showing overall buffered ranges only.
+            Per-segment timeline isn&rsquo;t available (this browser is likely
+            using native HLS playback instead of hls.js). Showing overall
+            buffered ranges only.
           </p>
         )}
 
@@ -199,7 +237,9 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
             >
               <ZoomOut size={14} />
             </button>
-            <span className="hls-debug-zoom-value">{Math.round(pxPerSec)} px/s</span>
+            <span className="hls-debug-zoom-value">
+              {Math.round(pxPerSec)} px/s
+            </span>
             <button
               type="button"
               className="hls-debug-zoom-button"
@@ -226,24 +266,45 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
             <div className="hls-debug-row-label">media buffer</div>
             <div className="hls-debug-row-label">video buffer (main)</div>
             <div className="hls-debug-row-label">audio buffer (main)</div>
+            {sortedLevels.length > 0 && (
+              <div className="hls-debug-row-label hls-debug-section-label">
+                Video tracks
+              </div>
+            )}
             {sortedLevels.map((level) => (
-              <div className="hls-debug-row-label" key={`video-${level.index}`} title={level.label}>
+              <div
+                className="hls-debug-row-label"
+                key={`video-${level.index}`}
+                title={level.label}
+              >
                 {level.label}
               </div>
             ))}
             {sortedAudioTracks.length > 0 && (
-              <div className="hls-debug-row-label hls-debug-section-label">Audio tracks</div>
+              <div className="hls-debug-row-label hls-debug-section-label">
+                Audio tracks
+              </div>
             )}
             {sortedAudioTracks.map((track) => (
-              <div className="hls-debug-row-label" key={`audio-${track.index}`} title={track.label}>
+              <div
+                className="hls-debug-row-label"
+                key={`audio-${track.index}`}
+                title={track.label}
+              >
                 {track.label}
               </div>
             ))}
             {sortedSubtitleTracks.length > 0 && (
-              <div className="hls-debug-row-label hls-debug-section-label">Captions</div>
+              <div className="hls-debug-row-label hls-debug-section-label">
+                Captions
+              </div>
             )}
             {sortedSubtitleTracks.map((track) => (
-              <div className="hls-debug-row-label" key={`subtitle-${track.index}`} title={track.label}>
+              <div
+                className="hls-debug-row-label"
+                key={`subtitle-${track.index}`}
+                title={track.label}
+              >
                 {track.label}
               </div>
             ))}
@@ -253,7 +314,11 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
           <div className="hls-debug-scroll" ref={scrollRef}>
             <div className="hls-debug-track" style={{ width: trackWidth }}>
               {ticks.map((t) => (
-                <div key={t} className="hls-debug-gridline" style={{ left: t * pxPerSec }} />
+                <div
+                  key={t}
+                  className="hls-debug-gridline"
+                  style={{ left: t * pxPerSec }}
+                />
               ))}
 
               <div
@@ -268,7 +333,10 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     className="hls-debug-bar hls-debug-bar--media"
                     style={{
                       left: range.start * pxPerSec,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
+                      width: Math.max(
+                        MIN_CELL_WIDTH_PX,
+                        (range.end - range.start) * pxPerSec,
+                      ),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
@@ -282,7 +350,10 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     className="hls-debug-bar hls-debug-bar--video"
                     style={{
                       left: range.start * pxPerSec,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
+                      width: Math.max(
+                        MIN_CELL_WIDTH_PX,
+                        (range.end - range.start) * pxPerSec,
+                      ),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
@@ -296,13 +367,19 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                     className="hls-debug-bar hls-debug-bar--audio"
                     style={{
                       left: range.start * pxPerSec,
-                      width: Math.max(MIN_CELL_WIDTH_PX, (range.end - range.start) * pxPerSec),
+                      width: Math.max(
+                        MIN_CELL_WIDTH_PX,
+                        (range.end - range.start) * pxPerSec,
+                      ),
                     }}
                     title={`${formatTime(range.start)} – ${formatTime(range.end)}`}
                   />
                 ))}
               </div>
 
+              {sortedLevels.length > 0 && (
+                <div className="hls-debug-section-row" />
+              )}
               {sortedLevels.map((level) => (
                 <div className="hls-debug-row" key={`video-${level.index}`}>
                   <FragmentCells
@@ -314,11 +391,15 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                 </div>
               ))}
 
-              {sortedAudioTracks.length > 0 && <div className="hls-debug-section-row" />}
+              {sortedAudioTracks.length > 0 && (
+                <div className="hls-debug-section-row" />
+              )}
               {sortedAudioTracks.map((track) => (
                 <div className="hls-debug-row" key={`audio-${track.index}`}>
                   <FragmentCells
-                    fragments={state.audioFragmentsByTrack.get(track.index) ?? []}
+                    fragments={
+                      state.audioFragmentsByTrack.get(track.index) ?? []
+                    }
                     isTrackActive={state.activeAudioTrack === track.index}
                     currentTime={state.currentTime}
                     pxPerSec={pxPerSec}
@@ -326,11 +407,15 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
                 </div>
               ))}
 
-              {sortedSubtitleTracks.length > 0 && <div className="hls-debug-section-row" />}
+              {sortedSubtitleTracks.length > 0 && (
+                <div className="hls-debug-section-row" />
+              )}
               {sortedSubtitleTracks.map((track) => (
                 <div className="hls-debug-row" key={`subtitle-${track.index}`}>
                   <FragmentCells
-                    fragments={state.subtitleFragmentsByTrack.get(track.index) ?? []}
+                    fragments={
+                      state.subtitleFragmentsByTrack.get(track.index) ?? []
+                    }
                     isTrackActive={state.activeSubtitleTrack === track.index}
                     currentTime={state.currentTime}
                     pxPerSec={pxPerSec}
@@ -340,7 +425,11 @@ export function HlsTimelinePanel({ playerRef, resetKey }: HlsTimelinePanelProps)
 
               <div className="hls-debug-axis">
                 {ticks.map((t) => (
-                  <span key={t} className="hls-debug-tick-label" style={{ left: t * pxPerSec }}>
+                  <span
+                    key={t}
+                    className="hls-debug-tick-label"
+                    style={{ left: t * pxPerSec }}
+                  >
                     {formatTime(t)}
                   </span>
                 ))}
