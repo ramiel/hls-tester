@@ -470,10 +470,28 @@ body {
 
 .hls-debug-grid {
   display: flex;
+  align-items: flex-start;
   border: 1px solid var(--border);
   border-radius: 10px;
-  overflow: hidden;
   background: var(--bg-1);
+  max-height: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 35%, transparent) transparent;
+}
+
+.hls-debug-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hls-debug-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+}
+
+.hls-debug-grid::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .hls-debug-labels {
@@ -486,6 +504,7 @@ body {
 
 .hls-debug-row-label {
   height: 28px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -499,6 +518,7 @@ body {
 
 .hls-debug-section-label {
   height: 18px;
+  flex-shrink: 0;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
