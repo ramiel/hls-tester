@@ -348,6 +348,184 @@ body {
   color: #ffb9bb;
 }
 
+.hls-debug {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.hls-debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.hls-debug-toggle:hover,
+.hls-debug-toggle.is-open {
+  color: var(--text);
+}
+
+.hls-debug-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.hls-debug-toggle.is-open .hls-debug-chevron {
+  transform: rotate(90deg);
+}
+
+.hls-debug-body {
+  margin-top: 12px;
+}
+
+.hls-debug-note {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.hls-debug-grid {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+
+.hls-debug-labels {
+  flex: 0 0 172px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-1);
+}
+
+.hls-debug-row-label {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--border);
+}
+
+.hls-debug-axis-spacer {
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.hls-debug-scroll {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+}
+
+.hls-debug-track {
+  position: relative;
+}
+
+.hls-debug-row {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hls-debug-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  border-left: 1px dashed var(--border);
+  z-index: 0;
+}
+
+.hls-debug-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  width: 2px;
+  background: var(--danger);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hls-debug-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px;
+}
+
+.hls-debug-bar--media {
+  background: color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+
+.hls-debug-bar--video {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.hls-debug-bar--audio {
+  background: color-mix(in srgb, #d8b978 55%, transparent);
+}
+
+.hls-debug-cell {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 35%, var(--bg-1));
+  font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--text);
+  cursor: default;
+}
+
+.hls-debug-cell.is-active {
+  outline: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 70%, var(--bg-1));
+  color: var(--accent-contrast);
+}
+
+.hls-debug-cell.is-error {
+  background: var(--danger-bg);
+  outline: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.hls-debug-axis {
+  position: relative;
+  height: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.hls-debug-tick-label {
+  position: absolute;
+  bottom: 2px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .footer {
   text-align: center;
   margin-top: 22px;
