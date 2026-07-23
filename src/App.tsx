@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import type { MediaError as MuxMediaError } from "@mux/mux-player-react";
+import { Check, CirclePlay, Link2, TriangleAlert } from "lucide-react";
 import "./index.css";
 
 const SAMPLE_STREAM =
@@ -43,6 +44,7 @@ function App() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const loadStream = useCallback((rawUrl: string) => {
     const trimmed = rawUrl.trim();
@@ -67,10 +69,29 @@ function App() {
     setPlayerKey((key) => key + 1);
   }, []);
 
+  const shortLink = streamSrc
+    ? `${window.location.origin}${window.location.pathname}?${new URLSearchParams(
+        { url: streamSrc, ...(isLive ? { live: "true" } : {}) },
+      ).toString()}`
+    : null;
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     loadStream(urlInput);
   };
+
+  const handleCopyShortLink = useCallback(async () => {
+    if (!shortLink) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shortLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard access denied or unavailable; silently ignore.
+    }
+  }, [shortLink]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -132,6 +153,18 @@ function App() {
           <button type="submit">Load stream</button>
         </form>
 
+        {shortLink && (
+          <button
+            type="button"
+            className={`shortlink-chip${copied ? " is-copied" : ""}`}
+            onClick={handleCopyShortLink}
+            title={shortLink}
+          >
+            {copied ? <Check size={15} /> : <Link2 size={15} />}
+            <span>{copied ? "Copied!" : "Copy shareable link"}</span>
+          </button>
+        )}
+
         <div className="form-footer">
           <label className="live-toggle">
             <input
@@ -169,7 +202,7 @@ function App() {
 
             {!streamSrc && status !== "error" && (
               <div className="placeholder">
-                <PlayIcon />
+                <CirclePlay size={40} strokeWidth={1.5} />
                 <p>Paste a stream URL above to start playing</p>
               </div>
             )}
@@ -182,7 +215,7 @@ function App() {
 
             {status === "error" && errorMessage && (
               <div className="error-overlay" role="alert">
-                <ErrorIcon />
+                <TriangleAlert size={32} strokeWidth={1.5} />
                 <h2>Playback failed</h2>
                 <p>{errorMessage}</p>
               </div>
@@ -204,59 +237,6 @@ function App() {
         </footer>
       </main>
     </div>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="11"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        opacity="0.4"
-      />
-      <path d="M10 8.5L16 12L10 15.5V8.5Z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ErrorIcon() {
-  return (
-    <svg
-      width="32"
-      height="32"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M12 9V13"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 16.5V16.51"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10.29 3.86L1.82 18a1 1 0 0 0 .86 1.5h18.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
