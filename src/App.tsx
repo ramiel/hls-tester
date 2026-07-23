@@ -4,9 +4,10 @@ import type { MediaError as MuxMediaError } from "@mux/mux-player-react";
 import { Check, CirclePlay, Link2, TriangleAlert } from "lucide-react";
 import "./index.css";
 
+// const SAMPLE_STREAM =
+//   "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
 const SAMPLE_STREAM =
-  "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
-
+  "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8";
 type Status = "idle" | "loading" | "ready" | "error";
 
 function friendlyErrorMessage(detail: MuxMediaError | undefined): string {
@@ -130,7 +131,7 @@ function App() {
           <span className="badge">HLS &middot; Player</span>
           <h1>Stream Tester</h1>
           <p>
-            Paste any .m3u8 playlist URL and play it instantly &mdash; captions,
+            Paste any .m3u8 playlist URL and play it instantly. Captions,
             alternate audio tracks, and quality selection included out of the
             box.
           </p>
@@ -225,13 +226,9 @@ function App() {
 
         <footer className="footer">
           <p>
-            Powered by{" "}
-            <a
-              href="https://www.mux.com/player"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Mux Player
+            Made with 💚 by{" "}
+            <a href="https://line-21.com" target="_blank" rel="noreferrer">
+              Line 21
             </a>
           </p>
         </footer>
