@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import MuxPlayer from "@mux/mux-player-react";
 import type { MediaError as MuxMediaError, MuxPlayerRefAttributes } from "@mux/mux-player-react";
-import { Check, CirclePlay, Link2, RotateCw, TriangleAlert } from "lucide-react";
+import { Check, Link2 } from "lucide-react";
 import { HlsTimelinePanel } from "./hlsTimeline/HlsTimelinePanel";
-import "./index.css";
+import { VideoPlayer, type Status } from "./VideoPlayer";
+import styles from "./App.module.css";
 
 // const SAMPLE_STREAM =
 //   "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
 const SAMPLE_STREAM =
   "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8";
-type Status = "idle" | "loading" | "ready" | "error";
 
 function friendlyErrorMessage(detail: MuxMediaError | undefined): string {
   if (!detail) {
@@ -132,11 +131,11 @@ function App() {
   }, [streamSrc, loadStream]);
 
   return (
-    <div className="page">
-      <div className="glow" aria-hidden="true" />
-      <main className="card">
-        <header className="header">
-          <span className="badge">HLS &middot; Player</span>
+    <div className={styles.page}>
+      <div className={styles.glow} aria-hidden="true" />
+      <main className={styles.card}>
+        <header className={styles.header}>
+          <span className={styles.badge}>HLS &middot; Player</span>
           <h1>Stream Tester</h1>
           <p>
             Paste any .m3u8 playlist URL and play it instantly. Captions,
@@ -145,8 +144,8 @@ function App() {
           </p>
         </header>
 
-        <form className="url-form" onSubmit={handleSubmit}>
-          <label htmlFor={inputId} className="sr-only">
+        <form className={styles.urlForm} onSubmit={handleSubmit}>
+          <label htmlFor={inputId} className={styles.srOnly}>
             HLS stream URL
           </label>
           <input
@@ -165,7 +164,7 @@ function App() {
         {shortLink && (
           <button
             type="button"
-            className={`shortlink-chip${copied ? " is-copied" : ""}`}
+            className={`${styles.shortlinkChip}${copied ? ` ${styles.isCopied}` : ""}`}
             onClick={handleCopyShortLink}
             title={shortLink}
           >
@@ -174,8 +173,8 @@ function App() {
           </button>
         )}
 
-        <div className="form-footer">
-          <label className="live-toggle">
+        <div className={styles.formFooter}>
+          <label className={styles.liveToggle}>
             <input
               type="checkbox"
               checked={isLive}
@@ -185,63 +184,30 @@ function App() {
           </label>
           <button
             type="button"
-            className="link-button"
+            className={styles.linkButton}
             onClick={handleLoadSample}
           >
             Try a sample stream
           </button>
         </div>
 
-        <div className="player-shell">
-          <div className="player-frame">
-            {streamSrc && (
-              <MuxPlayer
-                ref={playerRef}
-                key={playerKey}
-                streamType={isLive ? "live" : "on-demand"}
-                src={streamSrc}
-                style={{ width: "100%", height: "100%" }}
-                accentColor="#7c5cff"
-                metadataVideoTitle="HLS Tester stream"
-                onError={handleError}
-                onLoadedData={handleLoadedData}
-                onWaiting={() => setStatus("loading")}
-                onPlaying={() => setStatus("ready")}
-              />
-            )}
-
-            {!streamSrc && status !== "error" && (
-              <div className="placeholder">
-                <CirclePlay size={40} strokeWidth={1.5} />
-                <p>Paste a stream URL above to start playing</p>
-              </div>
-            )}
-
-            {streamSrc && status === "loading" && (
-              <div className="loading-overlay">
-                <span className="spinner" />
-              </div>
-            )}
-
-            {status === "error" && errorMessage && (
-              <div className="error-overlay" role="alert">
-                <TriangleAlert size={32} strokeWidth={1.5} />
-                <h2>Playback failed</h2>
-                <p>{errorMessage}</p>
-                {streamSrc && (
-                  <button type="button" className="retry-button" onClick={handleRetry}>
-                    <RotateCw size={16} strokeWidth={2} />
-                    <span>Retry</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <VideoPlayer
+          playerRef={playerRef}
+          playerKey={playerKey}
+          streamSrc={streamSrc}
+          isLive={isLive}
+          status={status}
+          errorMessage={errorMessage}
+          onError={handleError}
+          onLoadedData={handleLoadedData}
+          onWaiting={() => setStatus("loading")}
+          onPlaying={() => setStatus("ready")}
+          onRetry={handleRetry}
+        />
 
         <HlsTimelinePanel playerRef={playerRef} resetKey={playerKey} />
 
-        <footer className="footer">
+        <footer className={styles.footer}>
           <p>
             Made with 💚 by{" "}
             <a href="https://line-21.com" target="_blank" rel="noreferrer">

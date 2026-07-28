@@ -10,6 +10,11 @@ import { ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { useHlsTimeline } from "./useHlsTimeline";
 import type { BufferedRange, FragmentRecord } from "./types";
+import styles from "./HlsTimelinePanel.module.css";
+
+function cx(...classes: Array<string | false | undefined>): string {
+  return classes.filter(Boolean).join(" ");
+}
 
 const DEFAULT_PX_PER_SEC = 12;
 const MIN_PX_PER_SEC = 2;
@@ -78,9 +83,11 @@ function FragmentCells({
         return (
           <div
             key={frag.key}
-            className={`hls-debug-cell${isActive ? " is-active" : ""}${
-              frag.status === "error" ? " is-error" : ""
-            }`}
+            className={cx(
+              styles.cell,
+              isActive && styles.isActive,
+              frag.status === "error" && styles.isError,
+            )}
             style={{ left: frag.start * pxPerSec, width: widthPx }}
             title={`sn: ${frag.sn} · ${formatTime(frag.start)}${
               frag.status === "error" ? " · load error" : ""
@@ -170,17 +177,17 @@ export function HlsTimelinePanel({
 
   if (!open) {
     return (
-      <section className="hls-debug">
+      <section className={styles.debug}>
         <button
           type="button"
-          className="hls-debug-toggle"
+          className={styles.toggle}
           aria-expanded={false}
           aria-controls={panelId}
           onClick={() => setOpen(true)}
         >
           <ChevronRight
             size={15}
-            className="hls-debug-chevron"
+            className={styles.chevron}
             aria-hidden="true"
           />
           <span>HLS debug timeline</span>
@@ -190,17 +197,17 @@ export function HlsTimelinePanel({
   }
 
   return (
-    <section className="hls-debug">
+    <section className={styles.debug}>
       <button
         type="button"
-        className="hls-debug-toggle is-open"
+        className={cx(styles.toggle, styles.isOpen)}
         aria-expanded={true}
         aria-controls={panelId}
         onClick={() => setOpen(false)}
       >
         <ChevronRight
           size={15}
-          className="hls-debug-chevron"
+          className={styles.chevron}
           aria-hidden="true"
         />
         <span>HLS debug timeline</span>
@@ -208,28 +215,28 @@ export function HlsTimelinePanel({
 
       <div
         id={panelId}
-        className="hls-debug-body"
+        className={styles.body}
         role="region"
         aria-label="HLS chunk timeline"
       >
         {state.availability === "detecting" && (
-          <p className="hls-debug-note">
+          <p className={styles.note}>
             Waiting for the hls.js engine to attach&hellip;
           </p>
         )}
         {state.availability === "unavailable" && (
-          <p className="hls-debug-note">
+          <p className={styles.note}>
             Per-segment timeline isn&rsquo;t available (this browser is likely
             using native HLS playback instead of hls.js). Showing overall
             buffered ranges only.
           </p>
         )}
 
-        <div className="hls-debug-controls">
-          <div className="hls-debug-zoom">
+        <div className={styles.controls}>
+          <div className={styles.zoom}>
             <button
               type="button"
-              className="hls-debug-zoom-button"
+              className={styles.zoomButton}
               onClick={() => setPxPerSec((p) => clampZoom(p / ZOOM_FACTOR))}
               disabled={pxPerSec <= MIN_PX_PER_SEC}
               aria-label="Zoom out"
@@ -237,12 +244,12 @@ export function HlsTimelinePanel({
             >
               <ZoomOut size={14} />
             </button>
-            <span className="hls-debug-zoom-value">
+            <span className={styles.zoomValue}>
               {Math.round(pxPerSec)} px/s
             </span>
             <button
               type="button"
-              className="hls-debug-zoom-button"
+              className={styles.zoomButton}
               onClick={() => setPxPerSec((p) => clampZoom(p * ZOOM_FACTOR))}
               disabled={pxPerSec >= MAX_PX_PER_SEC}
               aria-label="Zoom in"
@@ -251,7 +258,7 @@ export function HlsTimelinePanel({
               <ZoomIn size={14} />
             </button>
           </div>
-          <label className="hls-debug-follow-toggle">
+          <label className={styles.followToggle}>
             <input
               type="checkbox"
               checked={followPlayhead}
@@ -261,19 +268,19 @@ export function HlsTimelinePanel({
           </label>
         </div>
 
-        <div className="hls-debug-grid">
-          <div className="hls-debug-labels">
-            <div className="hls-debug-row-label">media buffer</div>
-            <div className="hls-debug-row-label">video buffer (main)</div>
-            <div className="hls-debug-row-label">audio buffer (main)</div>
+        <div className={styles.grid}>
+          <div className={styles.labels}>
+            <div className={styles.rowLabel}>media buffer</div>
+            <div className={styles.rowLabel}>video buffer (main)</div>
+            <div className={styles.rowLabel}>audio buffer (main)</div>
             {sortedLevels.length > 0 && (
-              <div className="hls-debug-row-label hls-debug-section-label">
+              <div className={cx(styles.rowLabel, styles.sectionLabel)}>
                 Video tracks
               </div>
             )}
             {sortedLevels.map((level) => (
               <div
-                className="hls-debug-row-label"
+                className={styles.rowLabel}
                 key={`video-${level.index}`}
                 title={level.label}
               >
@@ -281,13 +288,13 @@ export function HlsTimelinePanel({
               </div>
             ))}
             {sortedAudioTracks.length > 0 && (
-              <div className="hls-debug-row-label hls-debug-section-label">
+              <div className={cx(styles.rowLabel, styles.sectionLabel)}>
                 Audio tracks
               </div>
             )}
             {sortedAudioTracks.map((track) => (
               <div
-                className="hls-debug-row-label"
+                className={styles.rowLabel}
                 key={`audio-${track.index}`}
                 title={track.label}
               >
@@ -295,42 +302,42 @@ export function HlsTimelinePanel({
               </div>
             ))}
             {sortedSubtitleTracks.length > 0 && (
-              <div className="hls-debug-row-label hls-debug-section-label">
+              <div className={cx(styles.rowLabel, styles.sectionLabel)}>
                 Captions
               </div>
             )}
             {sortedSubtitleTracks.map((track) => (
               <div
-                className="hls-debug-row-label"
+                className={styles.rowLabel}
                 key={`subtitle-${track.index}`}
                 title={track.label}
               >
                 {track.label}
               </div>
             ))}
-            <div className="hls-debug-axis-spacer" />
+            <div className={styles.axisSpacer} />
           </div>
 
-          <div className="hls-debug-scroll" ref={scrollRef}>
-            <div className="hls-debug-track" style={{ width: trackWidth }}>
+          <div className={styles.scroll} ref={scrollRef}>
+            <div className={styles.track} style={{ width: trackWidth }}>
               {ticks.map((t) => (
                 <div
                   key={t}
-                  className="hls-debug-gridline"
+                  className={styles.gridline}
                   style={{ left: t * pxPerSec }}
                 />
               ))}
 
               <div
-                className="hls-debug-playhead"
+                className={styles.playhead}
                 style={{ left: state.currentTime * pxPerSec }}
               />
 
-              <div className="hls-debug-row">
+              <div className={styles.row}>
                 {state.mediaBuffered.map((range, i) => (
                   <div
                     key={i}
-                    className="hls-debug-bar hls-debug-bar--media"
+                    className={cx(styles.bar, styles.barMedia)}
                     style={{
                       left: range.start * pxPerSec,
                       width: Math.max(
@@ -343,11 +350,11 @@ export function HlsTimelinePanel({
                 ))}
               </div>
 
-              <div className="hls-debug-row">
+              <div className={styles.row}>
                 {state.videoBuffered.map((range, i) => (
                   <div
                     key={i}
-                    className="hls-debug-bar hls-debug-bar--video"
+                    className={cx(styles.bar, styles.barVideo)}
                     style={{
                       left: range.start * pxPerSec,
                       width: Math.max(
@@ -360,11 +367,11 @@ export function HlsTimelinePanel({
                 ))}
               </div>
 
-              <div className="hls-debug-row">
+              <div className={styles.row}>
                 {state.audioBuffered.map((range, i) => (
                   <div
                     key={i}
-                    className="hls-debug-bar hls-debug-bar--audio"
+                    className={cx(styles.bar, styles.barAudio)}
                     style={{
                       left: range.start * pxPerSec,
                       width: Math.max(
@@ -378,10 +385,10 @@ export function HlsTimelinePanel({
               </div>
 
               {sortedLevels.length > 0 && (
-                <div className="hls-debug-section-row" />
+                <div className={styles.sectionRow} />
               )}
               {sortedLevels.map((level) => (
-                <div className="hls-debug-row" key={`video-${level.index}`}>
+                <div className={styles.row} key={`video-${level.index}`}>
                   <FragmentCells
                     fragments={state.fragmentsByLevel.get(level.index) ?? []}
                     isTrackActive={state.activeLevel === level.index}
@@ -392,10 +399,10 @@ export function HlsTimelinePanel({
               ))}
 
               {sortedAudioTracks.length > 0 && (
-                <div className="hls-debug-section-row" />
+                <div className={styles.sectionRow} />
               )}
               {sortedAudioTracks.map((track) => (
-                <div className="hls-debug-row" key={`audio-${track.index}`}>
+                <div className={styles.row} key={`audio-${track.index}`}>
                   <FragmentCells
                     fragments={
                       state.audioFragmentsByTrack.get(track.index) ?? []
@@ -408,10 +415,10 @@ export function HlsTimelinePanel({
               ))}
 
               {sortedSubtitleTracks.length > 0 && (
-                <div className="hls-debug-section-row" />
+                <div className={styles.sectionRow} />
               )}
               {sortedSubtitleTracks.map((track) => (
-                <div className="hls-debug-row" key={`subtitle-${track.index}`}>
+                <div className={styles.row} key={`subtitle-${track.index}`}>
                   <FragmentCells
                     fragments={
                       state.subtitleFragmentsByTrack.get(track.index) ?? []
@@ -423,11 +430,11 @@ export function HlsTimelinePanel({
                 </div>
               ))}
 
-              <div className="hls-debug-axis">
+              <div className={styles.axis}>
                 {ticks.map((t) => (
                   <span
                     key={t}
-                    className="hls-debug-tick-label"
+                    className={styles.tickLabel}
                     style={{ left: t * pxPerSec }}
                   >
                     {formatTime(t)}
