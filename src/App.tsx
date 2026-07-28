@@ -1,33 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import type { MediaError as MuxMediaError, MuxPlayerRefAttributes } from "@mux/mux-player-react";
+import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { Check, Link2 } from "lucide-react";
 import { HlsTimelinePanel } from "./hlsTimeline/HlsTimelinePanel";
-import { VideoPlayer, type Status } from "./VideoPlayer";
+import { VideoPlayer } from "./VideoPlayer";
 import styles from "./App.module.css";
 
 // const SAMPLE_STREAM =
 //   "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
 const SAMPLE_STREAM =
   "https://devstreaming-cdn.apple.com/videos/streaming/examples/adv_dv_atmos/main.m3u8";
-
-function friendlyErrorMessage(detail: MuxMediaError | undefined): string {
-  if (!detail) {
-    return "Something went wrong while trying to play this stream.";
-  }
-  switch (detail.code) {
-    case 2: // MEDIA_ERR_NETWORK
-      return "The stream couldn't be reached. Check the URL, your connection, or whether the server allows cross-origin requests (CORS).";
-    case 3: // MEDIA_ERR_DECODE
-      return "The stream was reached but could not be decoded. It may be corrupted or use an unsupported codec.";
-    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-      return "This doesn't look like a playable HLS stream. Double-check the .m3u8 URL is correct and publicly accessible.";
-    default:
-      return (
-        detail.message ||
-        "Unable to load this stream. Please check the URL and try again."
-      );
-  }
-}
 
 function isLikelyValidUrl(value: string): boolean {
   try {
@@ -42,8 +23,7 @@ function App() {
   const [urlInput, setUrlInput] = useState("");
   const [streamSrc, setStreamSrc] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
   const [copied, setCopied] = useState(false);
   const playerRef = useRef<MuxPlayerRefAttributes>(null);
@@ -52,21 +32,18 @@ function App() {
     const trimmed = rawUrl.trim();
 
     if (!trimmed) {
-      setStatus("error");
-      setErrorMessage("Please enter an .m3u8 URL first.");
+      setFormError("Please enter an .m3u8 URL first.");
       return;
     }
 
     if (!isLikelyValidUrl(trimmed)) {
-      setStatus("error");
-      setErrorMessage(
+      setFormError(
         "That doesn't look like a valid URL. Make sure it starts with http:// or https://",
       );
       return;
     }
 
-    setErrorMessage(null);
-    setStatus("loading");
+    setFormError(null);
     setStreamSrc(trimmed);
     setPlayerKey((key) => key + 1);
   }, []);
@@ -114,16 +91,6 @@ function App() {
     loadStream(SAMPLE_STREAM);
   };
 
-  const handleError = useCallback((event: Event) => {
-    const detail = (event as CustomEvent<MuxMediaError>).detail;
-    setStatus("error");
-    setErrorMessage(friendlyErrorMessage(detail));
-  }, []);
-
-  const handleLoadedData = useCallback(() => {
-    setStatus("ready");
-  }, []);
-
   const handleRetry = useCallback(() => {
     if (streamSrc) {
       loadStream(streamSrc);
@@ -161,6 +128,12 @@ function App() {
           <button type="submit">Load stream</button>
         </form>
 
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+
         {shortLink && (
           <button
             type="button"
@@ -196,12 +169,6 @@ function App() {
           playerKey={playerKey}
           streamSrc={streamSrc}
           isLive={isLive}
-          status={status}
-          errorMessage={errorMessage}
-          onError={handleError}
-          onLoadedData={handleLoadedData}
-          onWaiting={() => setStatus("loading")}
-          onPlaying={() => setStatus("ready")}
           onRetry={handleRetry}
         />
 

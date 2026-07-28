@@ -1,23 +1,36 @@
-import type { Ref } from "react";
+import { useEffect, useState, type Ref } from "react";
 import MuxPlayer from "@mux/mux-player-react";
-import type { MuxPlayerRefAttributes } from "@mux/mux-player-react";
+import type { MediaError as MuxMediaError, MuxPlayerRefAttributes } from "@mux/mux-player-react";
 import { CirclePlay, RotateCw, TriangleAlert } from "lucide-react";
 import styles from "./VideoPlayer.module.css";
 
-export type Status = "idle" | "loading" | "ready" | "error";
+type Status = "idle" | "loading" | "ready" | "error";
 
 interface VideoPlayerProps {
   playerRef: Ref<MuxPlayerRefAttributes>;
   playerKey: number;
   streamSrc: string | null;
   isLive: boolean;
-  status: Status;
-  errorMessage: string | null;
-  onError: (event: Event) => void;
-  onLoadedData: () => void;
-  onWaiting: () => void;
-  onPlaying: () => void;
   onRetry: () => void;
+}
+
+function friendlyErrorMessage(detail: MuxMediaError | undefined): string {
+  if (!detail) {
+    return "Something went wrong while trying to play this stream.";
+  }
+  switch (detail.code) {
+    case 2: // MEDIA_ERR_NETWORK
+      return "The stream couldn't be reached. Check the URL, your connection, or whether the server allows cross-origin requests (CORS).";
+    case 3: // MEDIA_ERR_DECODE
+      return "The stream was reached but could not be decoded. It may be corrupted or use an unsupported codec.";
+    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+      return "This doesn't look like a playable HLS stream. Double-check the .m3u8 URL is correct and publicly accessible.";
+    default:
+      return (
+        detail.message ||
+        "Unable to load this stream. Please check the URL and try again."
+      );
+  }
 }
 
 export function VideoPlayer({
@@ -25,14 +38,25 @@ export function VideoPlayer({
   playerKey,
   streamSrc,
   isLive,
-  status,
-  errorMessage,
-  onError,
-  onLoadedData,
-  onWaiting,
-  onPlaying,
   onRetry,
 }: VideoPlayerProps) {
+  const [status, setStatus] = useState<Status>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!streamSrc) {
+      return;
+    }
+    setStatus("loading");
+    setErrorMessage(null);
+  }, [playerKey, streamSrc]);
+
+  const handleError = (event: Event) => {
+    const detail = (event as CustomEvent<MuxMediaError>).detail;
+    setStatus("error");
+    setErrorMessage(friendlyErrorMessage(detail));
+  };
+
   return (
     <div className={styles.playerShell}>
       <div className={styles.playerFrame}>
@@ -45,10 +69,10 @@ export function VideoPlayer({
             style={{ width: "100%", height: "100%" }}
             accentColor="#7c5cff"
             metadataVideoTitle="HLS Tester stream"
-            onError={onError}
-            onLoadedData={onLoadedData}
-            onWaiting={onWaiting}
-            onPlaying={onPlaying}
+            onError={handleError}
+            onLoadedData={() => setStatus("ready")}
+            onWaiting={() => setStatus("loading")}
+            onPlaying={() => setStatus("ready")}
           />
         )}
 
