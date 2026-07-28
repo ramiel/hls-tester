@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import type { MediaError as MuxMediaError, MuxPlayerRefAttributes } from "@mux/mux-player-react";
-import { Check, CirclePlay, Link2, TriangleAlert } from "lucide-react";
+import { Check, CirclePlay, Link2, RotateCw, TriangleAlert } from "lucide-react";
 import { HlsTimelinePanel } from "./hlsTimeline/HlsTimelinePanel";
 import "./index.css";
 
@@ -125,6 +125,12 @@ function App() {
     setStatus("ready");
   }, []);
 
+  const handleRetry = useCallback(() => {
+    if (streamSrc) {
+      loadStream(streamSrc);
+    }
+  }, [streamSrc, loadStream]);
+
   return (
     <div className="page">
       <div className="glow" aria-hidden="true" />
@@ -222,6 +228,12 @@ function App() {
                 <TriangleAlert size={32} strokeWidth={1.5} />
                 <h2>Playback failed</h2>
                 <p>{errorMessage}</p>
+                {streamSrc && (
+                  <button type="button" className="retry-button" onClick={handleRetry}>
+                    <RotateCw size={16} strokeWidth={2} />
+                    <span>Retry</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
